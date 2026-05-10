@@ -1,4 +1,4 @@
-const CACHE = 'carbon-v1';
+const CACHE = 'carbon-v2';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
