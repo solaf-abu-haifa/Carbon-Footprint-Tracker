@@ -1,22 +1,42 @@
 import { useState, useEffect } from 'react';
-import { Leaf, Calculator, Lightbulb } from 'lucide-react';
+import { Leaf, Calculator, Lightbulb, Download } from 'lucide-react';
 import { CarbonCalculator } from './components/CarbonCalculator';
 import TipsSection from './components/TipsSection';
 import axios from 'axios';
 import './styles/theme.css';
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('calculator');
   const [currentFootprint, setCurrentFootprint] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [userData, setUserData] = useState({
     age: '',
     gender: 'M',
     city: '',
     consent: false,
   });
-
   const [monthlyData, setMonthlyData] = useState([]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') setShowInstallBanner(false);
+  };
 
   useEffect(() => {
     const deviceID = localStorage.getItem('research_device_id');
@@ -30,22 +50,21 @@ export default function App() {
   }, []);
 
   const fetchHistoryFromServer = async (deviceID) => {
-  if (!deviceID) return; // حماية عشان ما يبعت طلب فاضي
-  try {
-    const response = await axios.get(`http://127.0.0.1:8000/api/history/${deviceID}/`);
-    setMonthlyData(response.data);
-  } catch (error) {
-    console.error("فشل في جلب التاريخ:", error.response?.data);
-  }
-};
+    if (!deviceID) return;
+    try {
+      const response = await axios.get(`${API}/api/history/${deviceID}/`);
+      setMonthlyData(response.data);
+    } catch (error) {
+      console.error("فشل في جلب التاريخ:", error.response?.data);
+    }
+  };
 
   async function saveMonthlyRecord(dataObject) {
     const deviceID = localStorage.getItem('research_device_id');
     const savedInfo = JSON.parse(localStorage.getItem('user_basic_info') || '{}');
 
-    // نأخذ البيانات كما جاءت من الحاسبة ونضيف عليها بيانات الباحث
     const payload = {
-      ...dataObject, // هذا سيجلب (transport_km, protein_grams, إلخ) تلقائياً
+      ...dataObject,
       device_id: deviceID,
       gender: userData.gender || savedInfo.gender || 'M',
       age: parseInt(userData.age || savedInfo.age) || 0,
@@ -59,32 +78,55 @@ export default function App() {
     }
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/save/', payload);
+      await axios.post(`${API}/api/save/`, payload);
       alert("تم حفظ بياناتك بنجاح!");
       fetchHistoryFromServer(deviceID);
     } catch (error) {
       console.log("تفاصيل خطأ السيرفر:", error.response?.data);
       alert("فشل الحفظ: " + JSON.stringify(error.response?.data));
     }
-
   }
- 
+
   const handleOnboardingSubmit = (e) => {
     e.preventDefault();
     if (!userData.consent) {
       alert('يرجى الموافقة على استخدام البيانات للمتابعة.');
       return;
     }
-
     const uniqueID = 'dev_' + Math.random().toString(36).substr(2, 9);
     localStorage.setItem('research_device_id', uniqueID);
     localStorage.setItem('user_basic_info', JSON.stringify(userData));
-
     setShowOnboarding(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+
+      {/* ── بانر التثبيت PWA ── */}
+      {showInstallBanner && (
+        <div className="fixed bottom-4 left-4 right-4 z-50 bg-green-700 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3" dir="rtl">
+          <div>
+            <p className="font-bold text-sm">ثبّت التطبيق على جهازك!</p>
+            <p className="text-xs opacity-80">يعمل بدون إنترنت ويُفتح كتطبيق عادي</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleInstall}
+              className="bg-white text-green-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1"
+            >
+              <Download className="w-4 h-4" />
+              تثبيت
+            </button>
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              className="text-white/70 text-sm px-2"
+            >
+              لاحقاً
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white shadow-md">
         <div className="max-w-6xl mx-auto px-6 py-6 text-right" dir="rtl">
           <div className="flex items-center justify-between">
@@ -114,7 +156,6 @@ export default function App() {
             <Calculator className="w-5 h-5" />
             <span>الحاسبة</span>
           </button>
-
           <button
             onClick={() => setActiveTab('tips')}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
@@ -150,21 +191,19 @@ export default function App() {
               <h2 className="text-xl font-bold text-gray-800">بيانات الباحث</h2>
               <p className="text-xs text-gray-500 mt-2">يرجى إدخال البيانات التالية للمساهمة في البحث العلمي</p>
             </div>
-
             <form onSubmit={handleOnboardingSubmit} className="space-y-4 text-right">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">العمر</label>
-                <input 
+                <input
                   type="number" required
                   className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none"
                   value={userData.age}
                   onChange={(e) => setUserData({...userData, age: e.target.value})}
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">الجنس</label>
-                <select 
+                <select
                   className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none"
                   value={userData.gender}
                   onChange={(e) => setUserData({...userData, gender: e.target.value})}
@@ -173,20 +212,18 @@ export default function App() {
                   <option value="F">أنثى</option>
                 </select>
               </div>
-
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">المدينة</label>
-                <input 
+                <input
                   type="text" placeholder="مثلاً: عمان" required
                   className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none"
                   value={userData.city}
                   onChange={(e) => setUserData({...userData, city: e.target.value})}
                 />
               </div>
-
               <div className="bg-blue-50 p-3 rounded-xl mt-4">
                 <div className="flex gap-2">
-                  <input 
+                  <input
                     type="checkbox" required
                     className="mt-1 h-4 w-4"
                     checked={userData.consent}
@@ -197,7 +234,6 @@ export default function App() {
                   </label>
                 </div>
               </div>
-
               <button type="submit" className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all shadow-md">
                 موافقة ومتابعة
               </button>
