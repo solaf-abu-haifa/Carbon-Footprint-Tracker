@@ -4,10 +4,7 @@ import {
   Save, ChevronDown, Info, TrendingUp, TrendingDown, Minus
 } from 'lucide-react';
  
-// ══════════════════════════════════════════════════════════
-//  معاملات الانبعاثات — مطابقة تماماً للباكيند
-//  المصادر: IPCC AR6, DEFRA 2023, EEA 2023, Our World in Data
-// ══════════════════════════════════════════════════════════
+
 const TRANSPORT_FACTORS = {
   petrol_small:  0.142, petrol_medium: 0.170, petrol_large:  0.215,
   diesel_car:    0.155, hybrid_car:    0.105, ev_car:        0.047,
@@ -29,7 +26,7 @@ const HEATING_FACTORS = {
   none: 0, electric: 0.588, natural_gas: 2.04, lpg: 2.98,
   diesel_heater: 2.68, wood: 0.39, district: 0.30,
 };
-const ELEC_FACTOR = 0.588; // kgCO₂/kWh — شبكة الأردن 2023
+const ELEC_FACTOR = 0.588; 
  
 const WATER_FACTORS = {
   city_network: 0.708, well_pump: 0.500, tanker: 1.200, mixed: 0.850,
@@ -43,9 +40,7 @@ const FLIGHT_FACTORS = {
   short_first: 280, medium_first: 440, long_first: 560,
 };
  
-// ══════════════════════════════════════════════════════════
-//  دالة الحساب الرئيسية
-// ══════════════════════════════════════════════════════════
+
 export function calcBreakdown(v) {
   // المواصلات
   const baseTrans = v.transport_km * (TRANSPORT_FACTORS[v.transport_type] || 0);
@@ -80,10 +75,8 @@ export function calcBreakdown(v) {
     : 0;
   const energy      = (elecDaily + heatDaily + coolExtra) / Math.max(v.household_size || 1, 1);
  
-  // المياه
   const water = ((v.water_usage_liters || 0) / 1000) * (WATER_FACTORS[v.water_source] || 0.708);
  
-  // المشتريات
   const shoppingRaw  = ((v.clothes_spend || 0) * 0.15 +
                         (v.electronics_spend || 0) * 0.25 +
                         (v.furniture_spend || 0) * 0.10) / 30;
@@ -103,9 +96,7 @@ export function calcBreakdown(v) {
   };
 }
  
-// ══════════════════════════════════════════════════════════
-//  مكوّنات مساعدة
-// ══════════════════════════════════════════════════════════
+
 function SectionCard({ icon: Icon, color, title, children }) {
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200">
@@ -196,7 +187,6 @@ function RangeSlider({ value, onChange, min = 0, max = 100, step = 5, unit = '%'
   );
 }
  
-// شريط البصمة الجزئية
 function SubBar({ label, value, color, max }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
@@ -212,9 +202,7 @@ function SubBar({ label, value, color, max }) {
   );
 }
  
-// ══════════════════════════════════════════════════════════
-//  المكوّن الرئيسي
-// ══════════════════════════════════════════════════════════
+
 const INITIAL = {
   // مواصلات
   transport_type: 'petrol_medium', transport_km: 0,
