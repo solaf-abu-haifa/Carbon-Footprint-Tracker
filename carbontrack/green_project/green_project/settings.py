@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 from decouple import config
-import dj_database_url  
+import dj_database_url
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-fallback-key')
@@ -19,20 +20,18 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'whitenoise.runserver_nostatic', 
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
-    
     'rest_framework',
     'corsheaders',
-    
-    'tracker', 
+    'tracker',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',        
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', 
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -59,7 +58,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'green_project.wsgi.application'
 
-
 DATABASES = {
     'default': dj_database_url.config(
         default=f"postgres://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT', default='5432')}/{config('DB_NAME')}",
@@ -68,10 +66,9 @@ DATABASES = {
 }
 
 CORS_ALLOWED_ORIGINS = [
-    'https://carbon-tracker.vercel.app', 
-    'http://localhost:5173',            
+    'https://carbon-footprint-tracker-wheat.vercel.app',  
+    'http://localhost:5173',
 ]
-
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
