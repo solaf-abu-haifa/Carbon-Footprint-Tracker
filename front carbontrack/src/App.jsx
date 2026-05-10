@@ -30,48 +30,44 @@ export default function App() {
   }, []);
 
   const fetchHistoryFromServer = async (deviceID) => {
-    try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/history/${deviceID}/`);
-      setMonthlyData(response.data);
-    } catch (error) {
-      console.error("فشل في جلب التاريخ من السيرفر:", error);
-    }
-  };
-
-const saveMonthlyRecord = async (dataObject) => {
-  const deviceID = localStorage.getItem('research_device_id');
-  
-  // نستخدم userData الموجودة في الحالة (State) لأنها الأحدث
-  // وإذا كانت فارغة، نحاول جلبها من localStorage كخطة بديلة
-  const savedInfo = JSON.parse(localStorage.getItem('user_basic_info') || '{}');
-  const city = userData.city || savedInfo.city;
-
-  const payload = {
-    device_id: deviceID,
-    gender: userData.gender || savedInfo.gender || 'M',
-    age: parseInt(userData.age || savedInfo.age) || 0,
-    city: city, // التأكد أن هذه القيمة ليست فارغة
-    transport_km: dataObject.transport || 0,
-    electricity_usage: dataObject.energy || 0,
-    carbon_result: dataObject.totalResult || 0
-  };
-
-  if (!payload.city) {
-    alert("خطأ: يرجى إدخال المدينة في بيانات الباحث أولاً.");
-    setShowOnboarding(true); // إظهار الشاشة إذا كانت المدينة مفقودة
-    return;
-  }
-
+  if (!deviceID) return; // حماية عشان ما يبعت طلب فاضي
   try {
-    const response = await axios.post('http://127.0.0.1:8000/api/save/', payload);
-    console.log("نجح الحفظ!", response.data);
-    alert("تم حفظ بياناتك بنجاح في قاعدة البيانات!");
-    fetchHistoryFromServer(deviceID); // تحديث القائمة فوراً
+    const response = await axios.get(`http://127.0.0.1:8000/api/history/${deviceID}/`);
+    setMonthlyData(response.data);
   } catch (error) {
-    console.log("تفاصيل خطأ السيرفر:", error.response?.data);
-    alert("فشل الحفظ: " + JSON.stringify(error.response?.data));
+    console.error("فشل في جلب التاريخ:", error.response?.data);
   }
 };
+
+  async function saveMonthlyRecord(dataObject) {
+    const deviceID = localStorage.getItem('research_device_id');
+    const savedInfo = JSON.parse(localStorage.getItem('user_basic_info') || '{}');
+
+    // نأخذ البيانات كما جاءت من الحاسبة ونضيف عليها بيانات الباحث
+    const payload = {
+      ...dataObject, // هذا سيجلب (transport_km, protein_grams, إلخ) تلقائياً
+      device_id: deviceID,
+      gender: userData.gender || savedInfo.gender || 'M',
+      age: parseInt(userData.age || savedInfo.age) || 0,
+      city: userData.city || savedInfo.city,
+    };
+
+    if (!payload.city) {
+      alert("خطأ: يرجى إدخال المدينة في بيانات الباحث أولاً.");
+      setShowOnboarding(true);
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/save/', payload);
+      alert("تم حفظ بياناتك بنجاح!");
+      fetchHistoryFromServer(deviceID);
+    } catch (error) {
+      console.log("تفاصيل خطأ السيرفر:", error.response?.data);
+      alert("فشل الحفظ: " + JSON.stringify(error.response?.data));
+    }
+
+  }
  
   const handleOnboardingSubmit = (e) => {
     e.preventDefault();
