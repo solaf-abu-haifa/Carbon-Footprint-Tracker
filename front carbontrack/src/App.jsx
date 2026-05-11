@@ -98,11 +98,16 @@ export default function App() {
     localStorage.setItem('user_basic_info', JSON.stringify(userData));
     setShowOnboarding(false);
   };
+  useEffect(() => {
+  const wake = () => fetch(`${import.meta.env.VITE_API_URL}/api/stats/`);
+  wake();
+  const interval = setInterval(wake, 14 * 60 * 1000);
+  return () => clearInterval(interval);
+   }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
 
-      {/* ── بانر التثبيت PWA ── */}
       {showInstallBanner && (
         <div className="fixed bottom-4 left-4 right-4 z-50 bg-green-700 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3" dir="rtl">
           <div>
